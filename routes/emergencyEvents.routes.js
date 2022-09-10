@@ -158,4 +158,116 @@ router.delete("/:id", isLoggedIn, (req, res) => {
             return res.status(500).json({ errorMessage: "Something went wrong" });
         });
 });
+
+
+
+//Reaction Routes 
+
+router.post("/:id/reactions", isLoggedIn, (req, res) => {
+
+    const emergencyEventID = req.params.id;
+    const reaction = req.body;
+
+    Session.findById(req.headers.authorization)
+        .then((session) => {
+            const user = session.user;
+            const { content } = reaction;
+
+            Reaction.create({
+                content,
+                user,
+            })
+                .then((reaction) => {
+                    return EmergencyEvent.findByIdAndUpdate(emergencyEventID, { $push: { reaction: reaction._id } })
+                })
+                .then(() => {
+                    return EmergencyEvent.findById(emergencyEventID).populate("user", "-password").populate("reaction")
+                })
+                .then((event) => {
+                    return res.status(201).json(event);
+                })
+                .catch((err) => {
+                    console.log(err);
+                    return res.status(500).json({ errorMessage: "Something went wrong" });
+                });
+        })
+
+});
+
+//GET -> Get all reactions
+
+router.get("/:id/reactions", isLoggedIn, (req, res) => {
+    const emergencyEventID = req.params.id;
+    EmergencyEvent.findById(emergencyEventID)
+        .populate("reaction")
+        .then((event) => {
+            return res.status(200).json(event.reaction);
+        })
+        .catch((err) => {
+            console.log(err);
+            return res.status(500).json({ errorMessage: "Something went wrong" });
+        });
+});
+
+
+//GET -> Get reaction by id
+
+router.get("/:id/reactions/:reactionID", isLoggedIn, (req, res) => {
+    const emergencyEventID = req.params.id;
+    const reactionID = req.params.reactionID;
+    EmergencyEvent.findById(emergencyEventID)
+        .populate("reaction")
+        .then((event) => {
+            const reaction = event.reaction.find((reaction) => reaction._id == reactionID);
+            return res.status(200).json(reaction);
+        })
+        .catch((err) => {
+            console.log(err);
+            return res.status(500).json({ errorMessage: "Something went wrong" });
+        });
+});
+
+//PUT -> Update reaction
+
+router.put("/:id/reactions/:reactionID", isLoggedIn, (req, res) => {
+    const emergencyEventID = req.params.id;
+    const reactionID = req.params.reactionID;
+    const {content} = req.body;
+    
+
+    Reaction.findByIdAndUpdate(reactionID).
+        then((reaction) => {
+            reaction.content = content;
+            return reaction.save();
+        })
+        .then((reaction) => {
+            return EmergencyEvent.findById(emergencyEventID).populate("user", "-password").populate("reaction")
+        }).
+        then((event) => {
+            return res.status(200).json(event);
+        })
+});
+
+//DELETE -> Delete reaction
+
+router.delete("/:id/reactions/:reactionID", isLoggedIn, (req, res) => {
+    const emergencyEventID = req.params.id;
+    const reactionID = req.params.reactionID;
+    EmergencyEvent.findByIdAndUpdate(emergencyEventID, { $pull: { reactions: reactionID } })
+        .then(() => {
+            return Reaction.findByIdAndDelete(reactionID);
+        })
+        .then(() => {
+            return EmergencyEvent.findById(emergencyEventID).populate("user", "-password").populate("reaction")
+        })
+        .then((event) => {
+            return res.status(200).json(event);
+        })
+        .catch((err) => {
+            console.log(err);
+            return res.status(500).json({ errorMessage: "Something went wrong" });
+        });
+});
+
+
 module.exports = router;
