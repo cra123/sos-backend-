@@ -54,7 +54,7 @@ router.post("/", isLoggedIn, (req, res) => {
                 })
                 //Send find event by id
                 .then(() => {
-                    return EmergencyEvent.findById(eventID).populate("user", "-password")
+                    return EmergencyEvent.findById(eventID).populate("user", "-password").populate("reaction")
                 })
                 //Send Response to new Event
                 .then((eventDetails) => {
@@ -75,7 +75,7 @@ router.get("/", isLoggedIn, (req, res) => {
     //Find Event
     EmergencyEvent.find()
         //Add User to Event
-        .populate("user", "-password")
+        .populate("user", "-password").populate("reaction")
         //Send Response
         .then((events) => {
             return res.status(200).json(events);
@@ -92,7 +92,7 @@ router.get("/:id", isLoggedIn, (req, res) => {
     //Find Event
     EmergencyEvent.findById(req.params.id)
         //Add User to Event
-        .populate("user", "-password")
+        .populate("user", "-password").populate("reaction")
         //Send Response
         .then((event) => {
             return res.status(200).json(event);
